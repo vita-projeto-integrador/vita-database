@@ -1,0 +1,66 @@
+# Ponskan / Vita - modelo de dados (PostgreSQL + PostGIS)
+# Cole este conteudo no painel esquerdo do QuickDBD.
+# Sintaxe de relacionamento:  >- muitos-para-um | -< um-para-muitos | - um-para-um
+
+usuarios
+-
+id UUID PK # DEFAULT gen_random_uuid()
+nome VARCHAR(255)
+email VARCHAR(255) # unico entre ativos (indice parcial WHERE deletedAt IS NULL)
+senha VARCHAR(255)
+telefone VARCHAR(255) NULL
+data_nascimento TIMESTAMPTZ NULL
+tipo_acesso tipo_acesso_enum # ENUM: produtor | estudante | padrao: produtor
+endereco VARCHAR(255) NULL
+cnpj VARCHAR(255) NULL
+faculdade VARCHAR(255) NULL
+curso VARCHAR(255) NULL
+createdAt TIMESTAMPTZ # DEFAULT now()
+updatedAt TIMESTAMPTZ # DEFAULT now()
+deletedAt TIMESTAMPTZ NULL # exclusao logica
+
+analises
+-
+id UUID PK # DEFAULT gen_random_uuid()
+id_usuario UUID FK >- usuarios.id # ON DELETE CASCADE
+status status_analise_enum # ENUM: finalizada | pendente | cancelada | padrao: pendente
+createdAt TIMESTAMPTZ # DEFAULT now() | indice (id_usuario, createdAt DESC)
+updatedAt TIMESTAMPTZ # DEFAULT now()
+deletedAt TIMESTAMPTZ NULL
+
+imagens
+-
+id UUID PK # DEFAULT gen_random_uuid()
+id_analise UUID FK >- analises.id # ON DELETE CASCADE
+nome VARCHAR(255)
+caminho VARCHAR(255)
+coordenadas GEOGRAPHY(POINT,4326) NULL # ordem lon,lat | indice GIST
+tipo_mime tipo_mime_enum # ENUM: image/jpeg | image/jpg | image/png | image/webp
+tamanho INTEGER # CHECK (tamanho >= 1)
+createdAt TIMESTAMPTZ # DEFAULT now()
+updatedAt TIMESTAMPTZ # DEFAULT now()
+deletedAt TIMESTAMPTZ NULL
+
+processadas
+-
+id UUID PK # DEFAULT gen_random_uuid()
+id_imagem UUID FK >- imagens.id # ON DELETE CASCADE
+nome VARCHAR(255)
+caminho VARCHAR(255)
+tipo_mime tipo_mime_enum
+tamanho INTEGER # CHECK (tamanho >= 1)
+createdAt TIMESTAMPTZ # DEFAULT now()
+updatedAt TIMESTAMPTZ # DEFAULT now()
+deletedAt TIMESTAMPTZ NULL
+
+classificacoes
+-
+id UUID PK # DEFAULT gen_random_uuid()
+id_analise UUID UNIQUE FK - analises.id # 1-1 com analises | ON DELETE CASCADE
+tempo_execucao INTEGER NULL # milissegundos (arredondar no worker)
+classe INTEGER
+confianca FLOAT # double precision no Postgres
+modelo_cnn VARCHAR(255)
+createdAt TIMESTAMPTZ # DEFAULT now()
+updatedAt TIMESTAMPTZ # DEFAULT now()
+deletedAt TIMESTAMPTZ NULL
